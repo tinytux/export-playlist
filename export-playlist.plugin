@@ -1,0 +1,9 @@
+[Plugin]
+Loader=python3
+Module=export-playlist
+IAge=2
+Name=Export Playlist
+Description=Export music files of a playlist into a destination folder
+Authors=Gayan Weerakutti <gayan@linuxdeveloper.space>
+Copyright=Copyright © 2006 Gayan Weerakutti
+Website=http://www.linuxdeveloper.space/
