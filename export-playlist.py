@@ -1,4 +1,8 @@
-from gi.repository import Gio, Gtk, GObject, Peas
+from gi.repository import Gio, GLib, Gtk, GObject, Peas
+
+import os
+from urllib.parse import urlparse, unquote
+import shlex
 
 class ExportPlaylist(GObject.Object, Peas.Activatable):
 	__gtype_name__ = 'ExportPlaylist'
@@ -20,25 +24,32 @@ class ExportPlaylist(GObject.Object, Peas.Activatable):
 
 		app.add_plugin_menu_item('playlist-menu', 'export-menu-item', menu_item)
 
-
 	def do_deactivate(self):
 		app = Gio.Application.get_default()
 		app.remove_action('export-playlist')
 		app.remove_plugin_menu_item('playlist-menu', 'export-menu-item')
 
 	def export(self, action, data):
-		print("Exporting Playlist...")
 		shell = self.object
-		# GtkTreeStore
-		display_page_model = shell.props.display_page_model.props.child_model
-		# Gtk.TreeModelRow
-		playlist = [x for x in display_page_model if x[1].props.id == "playlists"][0]
-		playlist_iter = playlist.iterchildren()
-		for i in playlist_iter:
-			playlist_source = i[1]
-			print(playlist_source)
+		page = shell.props.selected_page
+		query_model = page.get_query_model()
+
+		# urlparse to parse path from url scheme file://
+		paths = [urlparse(row[0].get_playback_uri()).path for row in query_model]
+		# decode: replace %xx escapes
+		paths = [unquote(path) for path in paths]
+		# cp SOURCEs
+		src_cmdline = ' '.join(shlex.quote(uri) for uri in paths)
 
 
+		dialog = Gtk.FileChooserDialog(None, None, Gtk.FileChooserAction.SELECT_FOLDER, (Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL, "Select", Gtk.ResponseType.OK))
+		response = dialog.run()
+		if response == Gtk.ResponseType.OK:
+			# cp DEST directory
+			dest = unquote(urlparse(dialog.get_uri()).path)
+			cmdline = 'cp ' + src_cmdline + ' ' + shlex.quote(dest)
+			GLib.spawn_command_line_async(cmdline)
+		dialog.destroy()
 
 
 
