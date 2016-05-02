@@ -1,9 +1,5 @@
 from gi.repository import Gio, GLib, Gtk, GObject, Peas
 
-import os
-from urllib.parse import urlparse, unquote
-import shlex
-
 class ExportPlaylist(GObject.Object, Peas.Activatable):
 	__gtype_name__ = 'ExportPlaylist'
 	object = GObject.property(type=GObject.Object)
@@ -34,21 +30,21 @@ class ExportPlaylist(GObject.Object, Peas.Activatable):
 		page = shell.props.selected_page
 		query_model = page.get_query_model()
 
-		# urlparse to parse path from url scheme file://
-		paths = [urlparse(row[0].get_playback_uri()).path for row in query_model]
-		# decode: replace %xx escapes
-		paths = [unquote(path) for path in paths]
-		# cp SOURCEs
-		src_cmdline = ' '.join(shlex.quote(uri) for uri in paths)
+		uris = [row[0].get_playback_uri() for row in query_model]
 
+		dialog = Gtk.FileChooserDialog(title="Select Folder",
+			parent=shell.props.window,
+			action=Gtk.FileChooserAction.SELECT_FOLDER,
+			buttons=(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL, Gtk.STOCK_OK, Gtk.ResponseType.OK))
 
-		dialog = Gtk.FileChooserDialog(None, None, Gtk.FileChooserAction.SELECT_FOLDER, (Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL, "Select", Gtk.ResponseType.OK))
 		response = dialog.run()
 		if response == Gtk.ResponseType.OK:
-			# cp DEST directory
-			dest = unquote(urlparse(dialog.get_uri()).path)
-			cmdline = 'cp ' + src_cmdline + ' ' + shlex.quote(dest)
-			GLib.spawn_command_line_async(cmdline)
+			dest_dir = Gio.File.new_for_uri(dialog.get_uri())
+			for uri in uris:
+				source_file = Gio.File.new_for_uri(uri)
+				fname = source_file.get_basename()
+				dest_file = dest_dir.get_child(fname)
+				source_file.copy(dest_file, Gio.FileCopyFlags.OVERWRITE)
 		dialog.destroy()
 
 
