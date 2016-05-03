@@ -15,7 +15,7 @@ class ExportPlaylist(GObject.Object, Peas.Activatable):
 		app.add_action(action)
 
 		menu_item = Gio.MenuItem()
-		menu_item.set_label("Export..")
+		menu_item.set_label("Export Files To...")
 		menu_item.set_detailed_action('app.export-playlist')
 
 		app.add_plugin_menu_item('playlist-menu', 'export-menu-item', menu_item)
